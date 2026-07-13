@@ -1,4 +1,4 @@
-#Dela kostnader
+# Dela kostnader
 *Webbapp*
 
 Om du varit del av en grupp personer som lagt ut pengar vid exempelvis restaurangbesök eller en resa kan du **enkelt räkna ut vem som är skyldig att betala vem**.
