@@ -6,3 +6,8 @@ Detta är helt gratis, kräver ingen kontoregistrering och du slipper ladda ned 
 
 
 https://nicklasnilsson-ux.github.io/dela-kostnader/
+
+
+Om du använder samma webbläsare sparas uppgifterna på sidan så att du kan stänga fliken och återkomma vid ett annat tillfälle.
+
+Det går också att skriva ut uträkning och uppställning om du vill skicka kalkylen till gruppen du delat kostnader med.
