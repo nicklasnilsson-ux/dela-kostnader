@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kostnadsdelare — dela resor & restaurangnotor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,500,0,0&display=swap" rel="stylesheet">
+<style>
+  /*
+    Kontrastnoter (WCAG 2.1 AA/AAA, kontrollerat mot vit #FFFFFF resp. kräm #F7F2E7):
+    - #241F18 (huvudtext) på #FFFFFF / #F7F2E7        -> ~16.4:1 / ~14.7:1  (kräver 4.5:1) ✅✅ (AAA-nivå)
+    - #2B2719 (stödtext/etiketter/rubriker) på #FFFFFF -> ~14.9:1 (kräver 4.5:1) ✅✅ (AAA-nivå)
+    - #4A4536 (hint/placeholder/meta-text) på #F7F2E7  -> ~8.6:1  (kräver 4.5:1) ✅✅ (AAA-nivå)
+    - #FFFFFF på #24603F (knapp, grön)                 -> ~7.5:1  (kräver 4.5:1) ✅✅
+    - #1F4E33 (settle-belopp, grön text) på #FFF       -> ~8.4:1  (kräver 4.5:1) ✅✅
+    - #7A2411 (fel-text, rost) på #FFFFFF              -> ~10.1:1 (kräver 4.5:1) ✅✅
+    - #241F18 på #F1ECDE (person-chip)                 -> ~13:1   ✅✅
+    - Sektionskanter höjda från ~1.4:1 till #A89871 (~2.8:1) för tydligare gruppering
+    Tre textnivåer bevarar hierarkin (mörkast→ljusast) trots högre kontrast rakt över:
+    huvudtext > etikett/rubrik > hint/meta — grupperingen kommuniceras av
+    kortbakgrund + kant + luft mellan sektioner, inte enbart textfärg.
+  */
+  * { box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: #F7F2E7;
+    font-family: 'Inter', sans-serif;
+    color: #241F18;
+    padding: 22px 16px 64px;
+    font-size: 17px;
+    line-height: 1.5;
+    width: 100%;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .msi {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    -webkit-font-smoothing: antialiased;
+    width: 1em; height: 1em; overflow: hidden; flex-shrink: 0;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #2B2719;
+    margin-bottom: 6px;
+  }
+  #tripName {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 18px;
+    width: 100%;
+    border: 1.5px solid #C9BE9F;
+    border-radius: 10px;
+    background: #FFFFFF;
+    padding: 10px 14px;
+    color: #241F18;
+    display: block;
+  }
+  #tripName::placeholder { color: #4A4536; opacity: 1; }
+  #tripName:hover { border-color: #A99E7E; }
+  #tripName:focus { outline: 3px solid #24603F; outline-offset: 2px; border-color: #24603F; }
+  .hint { font-size: 15px; color: #2B2719; margin-top: 8px; line-height: 1.5; }
+
+  .card {
+    background: #FFFFFF;
+    border: 1px solid #A89871;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(36,31,24,0.08);
+  }
+  .card-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #2B2719;
+    letter-spacing: 0.03em;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .person-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #F1ECDE; border: 1px solid #DCD1B4; border-radius: 999px;
+    padding: 8px 8px 8px 16px; font-size: 16px; font-weight: 500; color: #241F18;
+  }
+  .person-chip button {
+    border: none; background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0; color: #2B2719; font-size: 15px;
+    border-radius: 999px;
+  }
+  .person-chip button .msi { font-size: 16px; }
+  .person-chip button:hover { background: #A89871; }
+  .empty-note { font-size: 16px; color: #2B2719; }
+
+  .row { display: flex; gap: 10px; min-width: 0; }
+  input[type="text"], select {
+    border: 1.5px solid #C9BE9F; border-radius: 8px;
+    padding: 12px 14px; font-size: 16px; font-family: 'Inter', sans-serif;
+    background: #fff; color: #241F18; min-height: 44px;
+    min-width: 0; max-width: 100%;
+  }
+  input[type="text"]::placeholder { color: #4A4536; opacity: 1; }
+  .row input[type="text"] { flex: 1; min-width: 0; }
+  .add-btn {
+    background: #241F18; color: #FFFFFF; border: none; border-radius: 8px;
+    padding: 0 18px; cursor: pointer; display: flex; align-items: center;
+    font-size: 22px; line-height: 1; min-width: 48px; min-height: 44px;
+    justify-content: center; flex-shrink: 0;
+  }
+  .add-btn .msi { font-size: 24px; }
+  .add-btn:hover { background: #3A3327; }
+
+  #addExpenseCard.disabled { opacity: 0.6; pointer-events: none; }
+
+  .field-full { width: 100%; margin-bottom: 10px; }
+  .amount-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; min-width: 0; }
+  .amount-row input { flex: 1 1 90px; min-width: 70px; }
+  .amount-row select.currency { flex: 0 0 auto; width: auto; padding: 12px 10px; min-width: 0; }
+  .amount-row select.payer { flex: 1 1 160px; min-width: 120px; padding: 12px 10px; }
+
+  .split-label { font-size: 15px; font-weight: 600; color: #2B2719; margin-bottom: 8px; }
+  .split-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .split-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1.5px solid #C9BE9F; background: #fff; color: #2B2719;
+    border-radius: 999px; padding: 9px 14px; font-size: 15px; font-weight: 500;
+    cursor: pointer; min-height: 40px;
+  }
+  .split-chip.active {
+    border: 1.5px solid #24603F; background: #DCEBE1; color: #1F4E33;
+  }
+
+  .error-text {
+    color: #7A2411; font-size: 15px; font-weight: 600; margin-bottom: 10px;
+    padding: 10px 12px; background: #FBEAE4; border-radius: 8px;
+    border: 1px solid #F0C7B8;
+  }
+
+  .submit-btn {
+    flex: 1; background: #24603F; color: #FFFFFF; border: none;
+    border-radius: 8px; padding: 14px 0; font-size: 16px; font-weight: 700;
+    cursor: pointer; min-height: 48px;
+  }
+  .submit-btn:hover { background: #1F4E33; }
+
+  .section-title {
+    font-size: 15px; font-weight: 700; color: #2B2719;
+    letter-spacing: 0.03em; margin: 0 4px 10px;
+  }
+
+  .expense-item {
+    background: #fff; border: 1px solid #A89871; border-radius: 12px; padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 1px 3px rgba(36,31,24,0.06); margin-bottom: 10px;
+    cursor: pointer; gap: 10px;
+  }
+  .expense-info { min-width: 0; overflow-wrap: anywhere; }
+  .expense-item:hover { border-color: #C9BE9F; background: #FDFBF6; }
+  .expense-item.editing { border: 1.5px solid #24603F; background: #F3F8F5; }
+  .expense-desc { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+  .expense-meta { font-size: 14px; color: #2B2719; margin-top: 3px; }
+  .expense-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .expense-amount { font-size: 16px; font-weight: 700; }
+  .del-btn {
+    border: none; background: transparent; cursor: pointer;
+    color: #4A4536; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; width: 40px; height: 40px; border-radius: 8px;
+  }
+  .del-btn:hover { background: #F1ECDE; color: #7A2411; }
+
+  .receipt-card {
+    background: #fff; border: 1px solid #A89871; border-bottom: none;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 1px 3px rgba(36,31,24,0.08); overflow: hidden;
+  }
+  .receipt-total { padding: 20px 18px 10px; text-align: center; }
+  .receipt-total-label { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: #2B2719; }
+  .receipt-total-amount { font-size: 34px; font-weight: 700; margin: 4px 0 16px; }
+  .receipt-divider { border-top: 1.5px dashed #C9BE9F; margin: 0 18px; }
+  .receipt-body { padding: 18px; }
+  .settle-empty { text-align: center; color: #2B2719; font-size: 16px; padding: 8px 0; line-height: 1.5; }
+  .settle-row { display: flex; align-items: center; justify-content: space-between; font-size: 16px; margin-bottom: 12px; flex-wrap: wrap; gap: 6px; }
+  .settle-row:last-child { margin-bottom: 0; }
+  .settle-names { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+  .settle-amount { color: #1F4E33; font-weight: 700; }
+  .torn-edge {
+    height: 14px;
+    background: radial-gradient(circle at 8px 0, transparent 7px, #F7F2E7 7px) 0 0 / 16px 14px repeat-x;
+    filter: drop-shadow(0 1px 1px rgba(36,31,24,0.08));
+  }
+
+  .reset-btn {
+    display: flex; align-items: center; gap: 6px; margin: 24px auto 0;
+    background: transparent; border: none; color: #2B2719; font-size: 15px;
+    font-weight: 600; cursor: pointer; padding: 10px 14px; min-height: 44px;
+    border-radius: 8px;
+  }
+  .reset-btn:hover { background: #EFE8D6; }
+
+  .info-card { padding: 0; overflow: hidden; }
+  .info-summary {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 18px; cursor: pointer; list-style: none;
+    font-size: 15px; font-weight: 700; color: #2B2719; letter-spacing: 0.02em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .info-summary::-webkit-details-marker { display: none; }
+  .info-summary:hover { background: #FBF9F3; }
+  .info-summary-text { flex: 1; }
+  .info-chevron { transition: transform 0.18s ease; color: #4A4536; }
+  details[open] .info-chevron { transform: rotate(180deg); }
+  .info-body { padding: 0 18px 18px; }
+  .info-body p {
+    font-size: 15px; line-height: 1.6; color: #2B2719; margin: 0 0 12px;
+  }
+  .info-body p:last-child { margin-bottom: 0; }
+  .info-body strong { color: #241F18; }
+  .info-body ul { margin: 0; padding: 0 0 0 20px; }
+  .info-body li {
+    font-size: 15px; line-height: 1.5; color: #2B2719; margin-bottom: 8px;
+  }
+  .info-body li:last-child { margin-bottom: 0; }
+
+  .balance-card { padding: 6px 18px; }
+  .balance-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; gap: 10px;
+  }
+  .balance-row + .balance-row { border-top: 1px solid #EFE8D6; }
+  .balance-name { font-size: 16px; font-weight: 700; color: #241F18; }
+  .balance-paid-label { font-size: 12px; color: #4A4536; margin-top: 3px; }
+  .balance-paid-amount { font-size: 17px; font-weight: 700; color: #241F18; margin-top: 1px; }
+  .balance-net { font-size: 16px; font-weight: 700; text-align: right; white-space: nowrap; }
+  .balance-net-label { font-size: 12px; font-weight: 500; display: block; text-align: right; }
+  .balance-net.positive { color: #1F4E33; }
+  .balance-net.negative { color: #7A2411; }
+  .balance-net.zero { color: #4A4536; }
+
+  .print-wrap { text-align: center; margin: 4px 0 16px; }
+  .print-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #FFFFFF; color: #241F18; border: 1.5px solid #A89871;
+    border-radius: 8px; padding: 12px 20px; font-size: 15px; font-weight: 700;
+    cursor: pointer; min-height: 44px;
+  }
+  .print-btn:hover { background: #FBF9F3; }
+  .print-hint { font-size: 13px; color: #4A4536; margin-top: 8px; }
+
+  button:focus-visible, input:focus-visible, select:focus-visible, .split-chip:focus-visible, summary:focus-visible {
+    outline: 3px solid #24603F; outline-offset: 2px;
+  }
+  .chip-btn { transition: transform 0.12s ease, background 0.12s ease; }
+  .chip-btn:active { transform: scale(0.96); }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  .hidden { display: none !important; }
+
+  @media print {
+    @page { margin: 6mm; }
+    html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #FFFFFF; padding: 0; font-size: 47px; }
+    .no-print, .hint { display: none !important; }
+    .wrap { max-width: 100%; }
+
+    .card, .receipt-card, #balanceList {
+      box-shadow: none; border: 1.5px solid #A89871;
+      break-inside: avoid; padding: 14px 16px;
+    }
+    .expense-item { box-shadow: none; border: 1px solid #E4DCC8; cursor: default; break-inside: avoid; padding: 12px 14px; }
+    .expense-item .del-btn { display: none; }
+    .person-chip button { display: none; }
+    #tripName { border: none; background: transparent; padding: 4px 0; font-size: 44px; }
+    .torn-edge { display: none; }
+    .settle-row, .balance-row { break-inside: avoid; }
+
+    /* Kraftigt större text överlag: en utskriven/PDF-sida visas ofta hoptryckt
+       på en telefonskärm, så texten behöver vara stor i källan för att
+       fortfarande gå att läsa bekvämt utan att zooma in. */
+    .eyebrow { font-size: 34px; }
+    .card-label { font-size: 38px; }
+    .section-title { font-size: 36px; }
+    .person-chip { font-size: 36px; padding: 15px 15px 15px 25px; }
+    .expense-desc { font-size: 39px; }
+    .expense-meta { font-size: 33px; }
+    .expense-amount { font-size: 39px; }
+    .receipt-total-label { font-size: 36px; }
+    .receipt-total-amount { font-size: 66px; }
+    .settle-row { font-size: 39px; }
+    .balance-name { font-size: 39px; }
+    .balance-paid-label { font-size: 29px; }
+    .balance-paid-amount { font-size: 42px; }
+    .balance-net { font-size: 39px; }
+    .balance-net-label { font-size: 29px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div style="margin-bottom:22px;">
+      <div class="eyebrow">Kvitto &amp; kostnadsdelning</div>
+      <input id="tripName" type="text" placeholder="Namnge resan eller kvällen…" />
+      <div class="hint">Datan sparas i den här webbläsaren och finns kvar även om du stänger fliken.</div>
+    </div>
+
+    <section class="card">
+      <div class="card-label"><span class="msi" aria-hidden="true">group</span> VEM VAR MED</div>
+      <div class="chips" id="peopleChips"></div>
+      <div class="row no-print">
+        <input type="text" id="newPersonInput" placeholder="Namn…" />
+        <button class="add-btn" id="addPersonBtn" aria-label="Lägg till person"><span class="msi" aria-hidden="true">add</span></button>
+      </div>
+    </section>
+
+    <section class="card no-print" id="addExpenseCard">
+      <div class="card-label" id="expenseCardLabel"><span class="msi" aria-hidden="true" id="expenseCardIcon">receipt_long</span> <span id="expenseCardText">NY UTGIFT</span></div>
+      <input type="text" id="descInput" class="field-full" placeholder="Vad gällde det? T.ex. Middag på Reffen" />
+      <div class="amount-row">
+        <input type="text" id="amountInput" class="mono" inputmode="decimal" placeholder="Belopp" />
+        <select id="currencySelect" class="currency">
+          <option value="kr">kr</option>
+          <option value="€">€</option>
+          <option value="$">$</option>
+          <option value="£">£</option>
+        </select>
+        <select id="paidBySelect" class="payer">
+          <option value="">Vem betalade?</option>
+        </select>
+      </div>
+      <div class="split-label">Dela mellan:</div>
+      <div class="split-chips" id="splitChips"></div>
+      <div id="expenseError" class="error-text hidden"></div>
+      <div class="row">
+        <button class="submit-btn" id="addExpenseBtn">Lägg till utgift</button>
+        <button class="add-btn hidden" id="cancelEditBtn" aria-label="Avbryt redigering" style="background:#2B2719;"><span class="msi" aria-hidden="true">close</span></button>
+      </div>
+    </section>
+
+    <section id="expenseListSection" class="hidden">
+      <div class="section-title" id="expenseCountLabel">UTGIFTER</div>
+      <div id="expenseList"></div>
+    </section>
+
+    <section id="settleSection" class="hidden">
+      <div class="section-title">GÖR UPP</div>
+      <div class="receipt-card">
+        <div class="receipt-total">
+          <div class="receipt-total-label">Totalt spenderat</div>
+          <div class="receipt-total-amount mono" id="totalAmount">0 kr</div>
+        </div>
+        <div class="receipt-divider"></div>
+        <div class="receipt-body" id="settleBody"></div>
+      </div>
+      <div class="torn-edge"></div>
+    </section>
+
+    <div class="print-wrap no-print">
+      <button class="print-btn" id="printBtn">
+        <span class="msi" aria-hidden="true">print</span>
+        Skriv ut eller spara som PDF
+      </button>
+      <div class="print-hint">Vill du bara skicka en bild? En vanlig skärmbild av sidan funkar också.</div>
+    </div>
+
+    <section id="balanceSection" class="hidden">
+      <div class="section-title">SALDO PER PERSON</div>
+      <div class="card balance-card" id="balanceList"></div>
+    </section>
+
+    <section class="card info-card no-print">
+      <details id="infoDetails">
+        <summary class="info-summary">
+          <span class="msi" aria-hidden="true">info</span>
+          <span class="info-summary-text">Så räknas det ut</span>
+          <span class="msi info-chevron" aria-hidden="true">expand_more</span>
+        </summary>
+        <div class="info-body">
+          <ul>
+            <li>Varje utgift delas bara mellan de som var markerade för just den posten.</li>
+            <li>Den som betalat får sin egen andel avräknad automatiskt.</li>
+            <li>"Gör upp" visar de färsta möjliga överföringarna för att alla ska bli skuldfria totalt sett.</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+    <button class="reset-btn hidden no-print" id="resetBtn"><span class="msi" aria-hidden="true">restart_alt</span> Börja om från början</button>
+  </div>
+
+<script>
+(function () {
+  const state = {
+    tripName: "",
+    currency: "kr",
+    people: [],
+    expenses: [],
+    paidBy: "",
+    splitAmong: [],
+    editingId: null,
+  };
+
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+
+  const $ = (id) => document.getElementById(id);
+
+  const STORAGE_KEY = "kostnadsdelare.state.v1";
+
+  function loadState() {
+    let raw;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      return;
+    }
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw);
+      state.tripName = typeof saved.tripName === "string" ? saved.tripName : "";
+      state.currency = typeof saved.currency === "string" ? saved.currency : "kr";
+      state.people = Array.isArray(saved.people) ? saved.people : [];
+      state.expenses = Array.isArray(saved.expenses) ? saved.expenses : [];
+      state.paidBy = typeof saved.paidBy === "string" ? saved.paidBy : "";
+      state.splitAmong = Array.isArray(saved.splitAmong) ? saved.splitAmong : [];
+    } catch (e) {
+      // corrupted data in storage, start fresh
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // storage unavailable (e.g. private browsing) - ignore
+    }
+  }
+
+  function fmt(n) {
+    const s = n.toFixed(2).replace(/\.00$/, "");
+    return `${s} ${state.currency}`;
+  }
+
+  function simplifyDebts(balances) {
+    const creditors = balances.filter(b => b.amount > 0.005)
+      .map(b => ({ ...b })).sort((a, b) => b.amount - a.amount);
+    const debtors = balances.filter(b => b.amount < -0.005)
+      .map(b => ({ ...b, amount: -b.amount })).sort((a, b) => b.amount - a.amount);
+    const transactions = [];
+    let i = 0, j = 0;
+    while (i < debtors.length && j < creditors.length) {
+      const pay = Math.min(debtors[i].amount, creditors[j].amount);
+      transactions.push({ from: debtors[i].name, to: creditors[j].name, amount: pay });
+      debtors[i].amount -= pay;
+      creditors[j].amount -= pay;
+      if (debtors[i].amount < 0.01) i++;
+      if (creditors[j].amount < 0.01) j++;
+    }
+    return transactions;
+  }
+
+  function computeBalances() {
+    return state.people.map(p => {
+      let paid = 0, owed = 0;
+      state.expenses.forEach(e => {
+        if (e.paidBy === p.id) paid += e.amount;
+        if (e.splitAmong.includes(p.id)) owed += e.amount / e.splitAmong.length;
+      });
+      return { id: p.id, name: p.name, paid, owed, amount: paid - owed };
+    });
+  }
+
+  function addPerson() {
+    const input = $("newPersonInput");
+    const name = input.value.trim();
+    if (!name) return;
+    if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      alert("Den personen finns redan.");
+      return;
+    }
+    const person = { id: uid(), name };
+    state.people.push(person);
+    state.splitAmong.push(person.id);
+    if (!state.paidBy) state.paidBy = person.id;
+    input.value = "";
+    render();
+  }
+
+  function removePerson(id) {
+    state.people = state.people.filter(p => p.id !== id);
+    // Ta bort personen ur befintliga utgifters delningslista så resten
+    // av notan räknas om korrekt mellan de kvarvarande personerna.
+    state.expenses = state.expenses
+      .filter(e => e.paidBy !== id)
+      .map(e => ({ ...e, splitAmong: e.splitAmong.filter(x => x !== id) }))
+      .filter(e => e.splitAmong.length > 0);
+    state.splitAmong = state.splitAmong.filter(x => x !== id);
+    if (state.paidBy === id) state.paidBy = state.people[0]?.id || "";
+    if (state.editingId && !state.expenses.some(e => e.id === state.editingId)) {
+      cancelEditExpense();
+    } else {
+      render();
+    }
+  }
+
+  function toggleSplit(id) {
+    if (state.splitAmong.includes(id)) {
+      state.splitAmong = state.splitAmong.filter(x => x !== id);
+    } else {
+      state.splitAmong.push(id);
+    }
+    render();
+  }
+
+  function showExpenseError(msg) {
+    const el = $("expenseError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function clearExpenseError() {
+    $("expenseError").classList.add("hidden");
+  }
+
+  function addExpense() {
+    const descInput = $("descInput");
+    const amountInput = $("amountInput");
+    const desc = descInput.value.trim();
+    const amt = parseFloat(amountInput.value.replace(",", "."));
+
+    if (!desc) { showExpenseError("Skriv vad utgiften gällde."); return; }
+    if (!amt || amt <= 0) { showExpenseError("Ange ett belopp större än 0."); return; }
+    if (!state.paidBy) { showExpenseError("Välj vem som betalade."); return; }
+    if (state.splitAmong.length === 0) { showExpenseError("Välj minst en person att dela med."); return; }
+
+    if (state.editingId) {
+      const existing = state.expenses.find(e => e.id === state.editingId);
+      if (existing) {
+        existing.desc = desc;
+        existing.amount = amt;
+        existing.paidBy = state.paidBy;
+        existing.splitAmong = [...state.splitAmong];
+      }
+      state.editingId = null;
+    } else {
+      state.expenses.unshift({
+        id: uid(), desc, amount: amt, paidBy: state.paidBy,
+        splitAmong: [...state.splitAmong],
+      });
+    }
+    descInput.value = "";
+    amountInput.value = "";
+    clearExpenseError();
+    render();
+  }
+
+  function startEditExpense(id) {
+    const e = state.expenses.find(x => x.id === id);
+    if (!e) return;
+    state.editingId = id;
+    state.paidBy = e.paidBy;
+    state.splitAmong = [...e.splitAmong];
+    $("descInput").value = e.desc;
+    $("amountInput").value = String(e.amount);
+    clearExpenseError();
+    render();
+    $("addExpenseCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("descInput").focus();
+  }
+
+  function cancelEditExpense() {
+    state.editingId = null;
+    $("descInput").value = "";
+    $("amountInput").value = "";
+    clearExpenseError();
+    render();
+  }
+
+  function removeExpense(id) {
+    state.expenses = state.expenses.filter(e => e.id !== id);
+    if (state.editingId === id) cancelEditExpense();
+    render();
+  }
+
+  function resetAll() {
+    state.tripName = "";
+    state.currency = "kr";
+    state.people = [];
+    state.expenses = [];
+    state.paidBy = "";
+    state.splitAmong = [];
+    $("tripName").value = "";
+    render();
+  }
+
+  function render() {
+    // people chips
+    const peopleChips = $("peopleChips");
+    peopleChips.innerHTML = "";
+    if (state.people.length === 0) {
+      const note = document.createElement("span");
+      note.className = "empty-note";
+      note.textContent = "Lägg till alla som var med";
+      peopleChips.appendChild(note);
+    } else {
+      state.people.forEach(p => {
+        const chip = document.createElement("span");
+        chip.className = "person-chip";
+        chip.innerHTML = `${escapeHtml(p.name)} <button aria-label="Ta bort ${escapeHtml(p.name)}"><span class="msi" aria-hidden="true">close</span></button>`;
+        chip.querySelector("button").onclick = () => removePerson(p.id);
+        peopleChips.appendChild(chip);
+      });
+    }
+
+    // paidBy select
+    const paidBySelect = $("paidBySelect");
+    paidBySelect.innerHTML = '<option value="">Vem betalade?</option>' +
+      state.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)} betalade</option>`).join("");
+    paidBySelect.value = state.paidBy || "";
+
+    // split chips
+    const splitChips = $("splitChips");
+    splitChips.innerHTML = "";
+    state.people.forEach(p => {
+      const active = state.splitAmong.includes(p.id);
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "split-chip chip-btn" + (active ? " active" : "");
+      chip.innerHTML = (active ? '<span class="msi" aria-hidden="true">check</span> ' : '') + escapeHtml(p.name);
+      chip.onclick = () => toggleSplit(p.id);
+      splitChips.appendChild(chip);
+    });
+
+    // enable/disable expense card
+    $("addExpenseCard").classList.toggle("disabled", state.people.length === 0);
+    $("expenseCardIcon").textContent = state.editingId ? "edit" : "receipt_long";
+    $("expenseCardText").textContent = state.editingId ? "REDIGERA UTGIFT" : "NY UTGIFT";
+    $("addExpenseBtn").textContent = state.editingId ? "Spara ändring" : "Lägg till utgift";
+    $("cancelEditBtn").classList.toggle("hidden", !state.editingId);
+
+    // expense list
+    const expenseListSection = $("expenseListSection");
+    const expenseList = $("expenseList");
+    if (state.expenses.length > 0) {
+      expenseListSection.classList.remove("hidden");
+      $("expenseCountLabel").textContent = `UTGIFTER (${state.expenses.length})`;
+      expenseList.innerHTML = "";
+      state.expenses.forEach(e => {
+        const payer = state.people.find(p => p.id === e.paidBy);
+        const item = document.createElement("div");
+        item.className = "expense-item" + (e.id === state.editingId ? " editing" : "");
+        item.tabIndex = 0;
+        item.setAttribute("role", "button");
+        item.setAttribute("aria-label", `Redigera ${escapeHtml(e.desc)}`);
+        item.innerHTML = `
+          <div class="expense-info">
+            <div class="expense-desc">${escapeHtml(e.desc)}</div>
+            <div class="expense-meta">${payer ? escapeHtml(payer.name) : "?"} betalade · delat på ${e.splitAmong.length}</div>
+          </div>
+          <div class="expense-right">
+            <span class="expense-amount mono">${fmt(e.amount)}</span>
+            <button class="del-btn" aria-label="Ta bort ${escapeHtml(e.desc)}"><span class="msi" aria-hidden="true">delete</span></button>
+          </div>
+        `;
+        const delBtn = item.querySelector(".del-btn");
+        delBtn.onclick = (evt) => { evt.stopPropagation(); removeExpense(e.id); };
+        item.addEventListener("click", () => startEditExpense(e.id));
+        item.addEventListener("keydown", (evt) => {
+          if (evt.key === "Enter" || evt.key === " ") { evt.preventDefault(); startEditExpense(e.id); }
+        });
+        expenseList.appendChild(item);
+      });
+    } else {
+      expenseListSection.classList.add("hidden");
+    }
+
+    // settlement
+    const settleSection = $("settleSection");
+    const balanceSection = $("balanceSection");
+    if (state.people.length > 0) {
+      settleSection.classList.remove("hidden");
+      balanceSection.classList.remove("hidden");
+      const total = state.expenses.reduce((s, e) => s + e.amount, 0);
+      $("totalAmount").textContent = fmt(total);
+      const bals = computeBalances();
+      const transactions = simplifyDebts(bals);
+      const body = $("settleBody");
+      if (transactions.length === 0) {
+        body.innerHTML = `<div class="settle-empty">${
+          state.expenses.length === 0
+            ? "Lägg till utgifter för att se vem som är skyldig vem."
+            : "Allt är redan jämnt — ingen behöver betala någon."
+        }</div>`;
+      } else {
+        body.innerHTML = transactions.map(t => `
+          <div class="settle-row">
+            <span class="settle-names">${escapeHtml(t.from)} <span class="msi" aria-hidden="true">arrow_forward</span> ${escapeHtml(t.to)}</span>
+            <span class="settle-amount mono">${fmt(t.amount)}</span>
+          </div>
+        `).join("");
+      }
+
+      $("balanceList").innerHTML = bals.map(b => {
+        const cls = b.amount > 0.005 ? "positive" : b.amount < -0.005 ? "negative" : "zero";
+        const label = b.amount > 0.005 ? "ska få" : b.amount < -0.005 ? "ska betala" : "jämnt";
+        return `
+          <div class="balance-row">
+            <div>
+              <div class="balance-name">${escapeHtml(b.name)}</div>
+              <div class="balance-paid-label">Betalade totalt</div>
+              <div class="balance-paid-amount mono">${fmt(b.paid)}</div>
+            </div>
+            <div>
+              <span class="balance-net-label">${label}</span>
+              <span class="balance-net mono ${cls}">${fmt(Math.abs(b.amount))}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      settleSection.classList.add("hidden");
+      balanceSection.classList.add("hidden");
+    }
+
+    // reset button
+    $("resetBtn").classList.toggle("hidden", !(state.people.length > 0 || state.expenses.length > 0));
+
+    saveState();
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // wire up static events
+  $("addPersonBtn").onclick = addPerson;
+  $("newPersonInput").addEventListener("keydown", (e) => { if (e.key === "Enter") addPerson(); });
+  $("addExpenseBtn").onclick = addExpense;
+  $("cancelEditBtn").onclick = cancelEditExpense;
+  $("tripName").addEventListener("input", (e) => { state.tripName = e.target.value; saveState(); });
+  $("currencySelect").addEventListener("change", (e) => { state.currency = e.target.value; render(); });
+  $("paidBySelect").addEventListener("change", (e) => { state.paidBy = e.target.value; saveState(); });
+  $("resetBtn").onclick = resetAll;
+  $("printBtn").onclick = () => {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => window.print());
+    } else {
+      window.print();
+    }
+  };
+
+  loadState();
+  $("tripName").value = state.tripName;
+  $("currencySelect").value = state.currency;
+  render();
+})();
+</script>
+</body>
+</html>
